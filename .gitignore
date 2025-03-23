@@ -1,6 +1,7 @@
 build/
 tags
 *.swp
+compile_commands.json
 # Prerequisites
 *.d
 
