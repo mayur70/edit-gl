@@ -22,3 +22,9 @@ target_link_libraries(edit-gl
 	OpenGL::GL
 	Glad
 )
+
+add_custom_command(TARGET edit-gl POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/res
+    $<TARGET_FILE_DIR:edit-gl>/res
+)

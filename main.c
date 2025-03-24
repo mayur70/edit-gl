@@ -5,20 +5,6 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-const char* vertex_src = "#version 330 core\n"
-	"layout (location= 0) in vec3 apos;\n"
-	"void main()\n"
-	"{\n"
-	"	gl_Position = vec4(apos, 1.0);\n"
-	"}\0";
-	
-const char* fragment_src = "#version 330 core\n"
-	"out vec4 frag_color;\n"
-	"void main()\n"
-	"{\n"
-	"	frag_color = vec4(1.0, 0.5, 0.2, 1.0);\n"
-	"}\0";
-
 GLFWwindow* window = NULL;
 unsigned int vbo = 0;
 unsigned int vao = 0;
@@ -29,12 +15,25 @@ void die(const char* msg) {
 	exit(1);
 }
 
+char* read_file_from_disk(const char* filename) {
+	FILE* fp = fopen(filename, "r");
+	if(fp == NULL)
+		die("failed to open file");
+	fseek(fp, 0, SEEK_END);
+	long len = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	char* buf = malloc(len + 1);
+	fread(buf, len, 1, fp);
+	buf[len] = '\0';
+	return buf;
+}
+
 void on_key_event(GLFWwindow* w, int key, int scancode, int action, int mods) {
 	if(key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(w, GLFW_TRUE);
 }
 
-int main() {
+void init() {
 	if(!glfwInit())
 		die("failed to init glfw");
 
@@ -62,11 +61,14 @@ int main() {
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	float vertices[] = {
-		-0.5, -0.5, 0.0,
-		0.5, -0.5, 0.0,
-		0.0, 0.5, 0.0
+		-0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
+		0.5, -0.5, 0.0,  1.0, 0.0, 0.0, 1.0,
+		0.0, 0.5, 0.0,  1.0, 0.0, 0.0, 1.0
 	};
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	char* vertex_src = read_file_from_disk("res/basic.vert");
+	char* fragment_src = read_file_from_disk("res/basic.frag");
 
 	unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vs, 1, &vertex_src, NULL);
@@ -86,6 +88,8 @@ int main() {
 		glGetShaderInfoLog(fs, 512, NULL, infolog);
 		die(infolog);
 	}
+	free(vertex_src);
+	free(fragment_src);
 	program = glCreateProgram();
 	glAttachShader(program, vs);
 	glAttachShader(program, fs);
@@ -98,9 +102,20 @@ int main() {
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(0* sizeof(GLfloat)));
 	glEnableVertexAttribArray(0);
 
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3* sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
+}
+
+void shutdown() {
+	glfwTerminate();
+}
+
+int main() {
+	init();
 	while(!glfwWindowShouldClose(window)) {
 
 		glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
@@ -113,6 +128,6 @@ int main() {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-	glfwTerminate();
+	shutdown();
 	return 0;
 }
