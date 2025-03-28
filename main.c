@@ -6,6 +6,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <stb_image.h>
 
 #define BATCH_SIZE 100
 #define VERTICES_MAX (BATCH_SIZE * 4)
@@ -16,7 +17,7 @@
 typedef struct Vertex {
     float x, y, z;
     float r, g, b, a;
-    float tex;
+    float tex_u, tex_v;
 } Vertex;
 
 typedef struct Renderer {
@@ -59,6 +60,27 @@ char *read_file_from_disk(const char *filename) {
 void on_key_event(GLFWwindow *w, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE)
         glfwSetWindowShouldClose(w, GLFW_TRUE);
+}
+
+unsigned int texture_create(const char *filename) {
+    int w, h, chnl;
+    unsigned char *data = stbi_load(filename, &w, &h, &chnl, 0);
+    if (data == NULL)
+        die("failed to load image");
+    unsigned int id = 0;
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+    if (chnl == 3)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB,
+                     GL_UNSIGNED_BYTE, data);
+    else if (chnl == 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, data);
+    else
+        die("unsupported op");
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
+    return id;
 }
 
 void renderer_create(Renderer *r) {
@@ -123,15 +145,15 @@ void renderer_create(Renderer *r) {
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float),
                           (void *)(0 * sizeof(GLfloat)));
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float),
                           (void *)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float),
                           (void *)(7 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
 }
@@ -170,6 +192,8 @@ void renderer_push_rect(float x, float y, float w, float h) {
     rect[0].g = color.y;
     rect[0].b = color.z;
     rect[0].a = color.w;
+    rect[0].tex_u = 1.0;
+    rect[0].tex_v = 1.0;
 
     rect[1].x = brx;
     rect[1].y = bry;
@@ -178,6 +202,9 @@ void renderer_push_rect(float x, float y, float w, float h) {
     rect[1].g = color.y;
     rect[1].b = color.z;
     rect[1].a = color.w;
+    rect[1].tex_u = 1.0;
+    rect[1].tex_v = 0.0;
+
 
     rect[2].x = tlx;
     rect[2].y = tly;
@@ -186,6 +213,9 @@ void renderer_push_rect(float x, float y, float w, float h) {
     rect[2].g = color.y;
     rect[2].b = color.z;
     rect[2].a = color.w;
+    rect[2].tex_u = 0.0;
+    rect[2].tex_v = 1.0;
+
 
     rect[3].x = blx;
     rect[3].y = bly;
@@ -194,6 +224,9 @@ void renderer_push_rect(float x, float y, float w, float h) {
     rect[3].g = color.y;
     rect[3].b = color.z;
     rect[3].a = color.w;
+    rect[3].tex_u = 0.0;
+    rect[3].tex_v = 0.0;
+
 
     renderer_push(rect, 4);
 }
@@ -238,7 +271,6 @@ void init() {
     glfwSetKeyCallback(window, on_key_event);
 
     renderer_create(&renderer);
-    renderer_push_rect(0, 0, 800, 600);
 }
 
 void shutdown() {
@@ -249,6 +281,11 @@ void shutdown() {
 int main() {
     init();
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    unsigned int container_texture = 0;
+    container_texture = texture_create("res/container.jpg");
+    printf("texture created %u\n", container_texture);
+    texture = container_texture;
+    renderer_push_rect(0, 0, 800, 600);
     while (!glfwWindowShouldClose(window)) {
 
         glClearColor(0.2f, 0.2f, 0.3f, 1.0f);

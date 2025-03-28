@@ -21,6 +21,7 @@ target_link_libraries(edit-gl
 	glfw
 	OpenGL::GL
 	Glad
+	StbImage
 )
 
 add_custom_command(TARGET edit-gl POST_BUILD
